@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FreelanceHub - Your Freelancing Platform</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <script>
+        // Check if user is logged in
+        const currentUser = localStorage.getItem('currentUser');
+        if (!currentUser) {
+            // Redirect to login page if not logged in
+            window.location.href = 'pages/login.html';
+        }
+    </script>
+
+    <nav class="navbar">
+        <div class="logo">
+            <h1>FreelanceHub</h1>
+        </div>
+        <div class="nav-links">
+            <a href="index.html" class="active">Home</a>
+            <a href="pages/projects.html">Projects</a>
+            <a href="pages/freelancers.html">Freelancers</a>
+            <a href="pages/about.html">About</a>
+            <a href="pages/contact.html">Contact</a>
+            <button class="login-btn" onclick="window.location.href='pages/login.html'">Login</button>
+            <button class="signup-btn" onclick="window.location.href='pages/signup.html'">Sign Up</button>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <div class="hero-content">
+            <h1>Find the Perfect Freelance Services</h1>
+            <p>Connect with talented freelancers or find your next project</p>
+            <div class="search-box">
+                <input type="text" placeholder="Search for projects or skills...">
+                <button title="Search"><i class="fas fa-search"></i></button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section id="featured-projects" class="section">
+            <h2>Featured Projects</h2>
+            <div class="project-grid">
+                <!-- Project cards will be dynamically added here -->
+            </div>
+        </section>
+
+        <section id="top-skills" class="section">
+            <h2>Popular Skills</h2>
+            <div class="skills-grid">
+                <!-- Skill cards will be dynamically added here -->
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>About Us</h3>
+                <p>FreelanceHub connects talented freelancers with clients worldwide.</p>
+            </div>
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <ul>
+                    <li><a href="#">How it Works</a></li>
+                    <li><a href="#">Pricing</a></li>
+                    <li><a href="#">Terms of Service</a></li>
+                    <li><a href="#">Privacy Policy</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Contact Us</h3>
+                <p>Email: support@freelancehub.com</p>
+                <p>Phone: +1 (555) 123-4567</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 FreelanceHub. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html> 
