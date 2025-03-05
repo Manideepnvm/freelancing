@@ -28,9 +28,21 @@
             <a href="pages/freelancers.html">Freelancers</a>
             <a href="pages/about.html">About</a>
             <a href="pages/contact.html">Contact</a>
-            <button class="login-btn" onclick="window.location.href='pages/login.html'">Login</button>
-            <button class="signup-btn" onclick="window.location.href='pages/signup.html'">Sign Up</button>
-            <button class="logout-btn" onclick="logout()">Logout</button>
+            <div class="user-menu">
+                <button class="user-btn" id="userMenuBtn">
+                    <i class="fas fa-user"></i>
+                    <span id="username">Account</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="user-dropdown" id="userDropdown">
+                    <a href="pages/settings.html">
+                        <i class="fas fa-cog"></i> Settings
+                    </a>
+                    <a href="#" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </div>
+            </div>
         </div>
     </nav>
 

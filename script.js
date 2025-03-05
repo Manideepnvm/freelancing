@@ -219,6 +219,34 @@ function logout() {
     window.location.href = 'pages/login.html';
 }
 
+// Handle user menu
+function initializeUserMenu() {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    const userBtn = document.getElementById('userMenuBtn');
+    const userDropdown = document.getElementById('userDropdown');
+    const usernameSpan = document.getElementById('username');
+
+    // Update username display
+    if (currentUser) {
+        usernameSpan.textContent = currentUser.username;
+    }
+
+    // Toggle dropdown
+    if (userBtn) {
+        userBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            userDropdown.classList.toggle('active');
+        });
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!userBtn.contains(e.target)) {
+            userDropdown.classList.remove('active');
+        }
+    });
+}
+
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
     createProjectCards();
@@ -227,4 +255,5 @@ document.addEventListener('DOMContentLoaded', () => {
     handleSearch();
     handleNavigation();
     handleAuthButtons();
+    initializeUserMenu();
 }); 
