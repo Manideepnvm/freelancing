@@ -1,42 +1,34 @@
 const express = require('express');
 const router = express.Router();
-const mysql = require('mysql2');
+const db = require('../config/db');
 const { body, validationResult } = require('express-validator');
 
-// Database connection
-const db = mysql.createConnection({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME
-});
-
-// Validation middleware
-const validateProject = [
+// Create a new project
+router.post('/', [
     body('title').trim().notEmpty().withMessage('Title is required'),
     body('description').trim().notEmpty().withMessage('Description is required'),
-    body('budget').isNumeric().withMessage('Budget must be a number'),
-    body('deadline').isDate().withMessage('Invalid deadline date')
-];
-
-// Create project
-router.post('/', validateProject, async (req, res) => {
+    body('budget').isFloat({ min: 0 }).withMessage('Budget must be a positive number')
+], async (req, res) => {
     try {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             return res.status(400).json({ errors: errors.array() });
         }
 
-        const { title, description, budget, deadline, client_id } = req.body;
+        const { title, description, budget } = req.body;
+        const clientId = req.user.userId; // From auth middleware
 
-        const [result] = await db.promise().query(
-            'INSERT INTO projects (title, description, budget, deadline, client_id) VALUES (?, ?, ?, ?, ?)',
-            [title, description, budget, deadline, client_id]
+        const [result] = await db.execute(
+            'INSERT INTO projects (title, description, budget, client_id) VALUES (?, ?, ?, ?)',
+            [title, description, budget, clientId]
         );
 
-        res.status(201).json({ message: 'Project created successfully', projectId: result.insertId });
+        res.status(201).json({
+            message: 'Project created successfully',
+            projectId: result.insertId
+        });
     } catch (error) {
-        console.error('Project creation error:', error);
+        console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 });
@@ -44,7 +36,7 @@ router.post('/', validateProject, async (req, res) => {
 // Get all projects
 router.get('/', async (req, res) => {
     try {
-        const [projects] = await db.promise().query(`
+        const [projects] = await db.execute(`
             SELECT p.*, u.name as client_name 
             FROM projects p 
             JOIN users u ON p.client_id = u.id 
@@ -53,7 +45,7 @@ router.get('/', async (req, res) => {
 
         res.json(projects);
     } catch (error) {
-        console.error('Get projects error:', error);
+        console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 });
@@ -61,7 +53,7 @@ router.get('/', async (req, res) => {
 // Get project by ID
 router.get('/:id', async (req, res) => {
     try {
-        const [projects] = await db.promise().query(`
+        const [projects] = await db.execute(`
             SELECT p.*, u.name as client_name 
             FROM projects p 
             JOIN users u ON p.client_id = u.id 
@@ -75,7 +67,7 @@ router.get('/:id', async (req, res) => {
         const project = projects[0];
 
         // Get bids for this project
-        const [bids] = await db.promise().query(`
+        const [bids] = await db.execute(`
             SELECT b.*, u.name as freelancer_name 
             FROM bids b 
             JOIN users u ON b.freelancer_id = u.id 
@@ -86,24 +78,46 @@ router.get('/:id', async (req, res) => {
 
         res.json(project);
     } catch (error) {
-        console.error('Get project error:', error);
+        console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 });
 
 // Update project
-router.put('/:id', async (req, res) => {
+router.put('/:id', [
+    body('title').optional().trim().notEmpty().withMessage('Title cannot be empty'),
+    body('description').optional().trim().notEmpty().withMessage('Description cannot be empty'),
+    body('budget').optional().isFloat({ min: 0 }).withMessage('Budget must be a positive number')
+], async (req, res) => {
     try {
-        const { title, description, budget, deadline, status } = req.body;
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
 
-        await db.promise().query(
-            'UPDATE projects SET title = ?, description = ?, budget = ?, deadline = ?, status = ? WHERE id = ?',
-            [title, description, budget, deadline, status, req.params.id]
+        const { title, description, budget } = req.body;
+        const projectId = req.params.id;
+        const clientId = req.user.userId;
+
+        // Check if project exists and belongs to client
+        const [projects] = await db.execute(
+            'SELECT * FROM projects WHERE id = ? AND client_id = ?',
+            [projectId, clientId]
+        );
+
+        if (projects.length === 0) {
+            return res.status(404).json({ message: 'Project not found or unauthorized' });
+        }
+
+        // Update project
+        await db.execute(
+            'UPDATE projects SET title = ?, description = ?, budget = ? WHERE id = ?',
+            [title || projects[0].title, description || projects[0].description, budget || projects[0].budget, projectId]
         );
 
         res.json({ message: 'Project updated successfully' });
     } catch (error) {
-        console.error('Project update error:', error);
+        console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 });
@@ -111,10 +125,25 @@ router.put('/:id', async (req, res) => {
 // Delete project
 router.delete('/:id', async (req, res) => {
     try {
-        await db.promise().query('DELETE FROM projects WHERE id = ?', [req.params.id]);
+        const projectId = req.params.id;
+        const clientId = req.user.userId;
+
+        // Check if project exists and belongs to client
+        const [projects] = await db.execute(
+            'SELECT * FROM projects WHERE id = ? AND client_id = ?',
+            [projectId, clientId]
+        );
+
+        if (projects.length === 0) {
+            return res.status(404).json({ message: 'Project not found or unauthorized' });
+        }
+
+        // Delete project (cascade will handle related records)
+        await db.execute('DELETE FROM projects WHERE id = ?', [projectId]);
+
         res.json({ message: 'Project deleted successfully' });
     } catch (error) {
-        console.error('Project deletion error:', error);
+        console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 });
@@ -122,32 +151,20 @@ router.delete('/:id', async (req, res) => {
 // Get projects by client
 router.get('/client/:clientId', async (req, res) => {
     try {
-        const [projects] = await db.promise().query(
-            'SELECT * FROM projects WHERE client_id = ? ORDER BY created_at DESC',
-            [req.params.clientId]
-        );
-
-        res.json(projects);
-    } catch (error) {
-        console.error('Get client projects error:', error);
-        res.status(500).json({ message: 'Server error' });
-    }
-});
-
-// Get projects by freelancer (through bids)
-router.get('/freelancer/:freelancerId', async (req, res) => {
-    try {
-        const [projects] = await db.promise().query(`
-            SELECT p.*, b.bid_amount, b.status as bid_status 
-            FROM projects p 
-            JOIN bids b ON p.id = b.project_id 
-            WHERE b.freelancer_id = ? 
+        const [projects] = await db.execute(`
+            SELECT p.*, 
+                   COUNT(b.id) as bid_count,
+                   AVG(b.bid_amount) as avg_bid_amount
+            FROM projects p
+            LEFT JOIN bids b ON p.id = b.project_id
+            WHERE p.client_id = ?
+            GROUP BY p.id
             ORDER BY p.created_at DESC
-        `, [req.params.freelancerId]);
+        `, [req.params.clientId]);
 
         res.json(projects);
     } catch (error) {
-        console.error('Get freelancer projects error:', error);
+        console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 });

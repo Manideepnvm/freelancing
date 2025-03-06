@@ -1,78 +1,77 @@
 const express = require('express');
 const router = express.Router();
-const mysql = require('mysql2');
+const db = require('../config/db');
 const { body, validationResult } = require('express-validator');
 
-// Database connection
-const db = mysql.createConnection({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME
-});
-
-// Validation middleware
-const validateBid = [
-    body('bid_amount').isNumeric().withMessage('Bid amount must be a number'),
-    body('proposal').trim().notEmpty().withMessage('Proposal is required')
-];
-
-// Create bid
-router.post('/', validateBid, async (req, res) => {
+// Create a new bid
+router.post('/', [
+    body('project_id').isInt().withMessage('Valid project ID is required'),
+    body('bid_amount').isFloat({ min: 0 }).withMessage('Bid amount must be a positive number')
+], async (req, res) => {
     try {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             return res.status(400).json({ errors: errors.array() });
         }
 
-        const { project_id, bid_amount, proposal, freelancer_id } = req.body;
+        const { project_id, bid_amount } = req.body;
+        const freelancerId = req.user.userId;
 
-        // Check if project exists and is open
-        const [projects] = await db.promise().query(
-            'SELECT * FROM projects WHERE id = ? AND status = "open"',
+        // Check if user is a freelancer
+        if (req.user.usertype !== 'freelancer') {
+            return res.status(403).json({ message: 'Only freelancers can place bids' });
+        }
+
+        // Check if project exists
+        const [projects] = await db.execute(
+            'SELECT * FROM projects WHERE id = ?',
             [project_id]
         );
 
         if (projects.length === 0) {
-            return res.status(400).json({ message: 'Project not found or not open for bidding' });
+            return res.status(404).json({ message: 'Project not found' });
         }
 
         // Check if freelancer has already bid on this project
-        const [existingBids] = await db.promise().query(
+        const [existingBids] = await db.execute(
             'SELECT * FROM bids WHERE project_id = ? AND freelancer_id = ?',
-            [project_id, freelancer_id]
+            [project_id, freelancerId]
         );
 
         if (existingBids.length > 0) {
             return res.status(400).json({ message: 'You have already bid on this project' });
         }
 
-        const [result] = await db.promise().query(
-            'INSERT INTO bids (project_id, bid_amount, proposal, freelancer_id) VALUES (?, ?, ?, ?)',
-            [project_id, bid_amount, proposal, freelancer_id]
+        // Create bid
+        const [result] = await db.execute(
+            'INSERT INTO bids (project_id, bid_amount, freelancer_id) VALUES (?, ?, ?)',
+            [project_id, bid_amount, freelancerId]
         );
 
-        res.status(201).json({ message: 'Bid placed successfully', bidId: result.insertId });
+        res.status(201).json({
+            message: 'Bid placed successfully',
+            bidId: result.insertId
+        });
     } catch (error) {
-        console.error('Bid creation error:', error);
+        console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 });
 
-// Get bids for a project
+// Get all bids for a project
 router.get('/project/:projectId', async (req, res) => {
     try {
-        const [bids] = await db.promise().query(`
+        const [bids] = await db.execute(`
             SELECT b.*, u.name as freelancer_name 
             FROM bids b 
             JOIN users u ON b.freelancer_id = u.id 
-            WHERE b.project_id = ? 
-            ORDER BY b.created_at DESC
+            WHERE b.project_id = ?
+            ORDER BY b.bid_amount ASC
         `, [req.params.projectId]);
 
         res.json(bids);
     } catch (error) {
-        console.error('Get bids error:', error);
+        console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 });
@@ -80,59 +79,54 @@ router.get('/project/:projectId', async (req, res) => {
 // Get bids by freelancer
 router.get('/freelancer/:freelancerId', async (req, res) => {
     try {
-        const [bids] = await db.promise().query(`
-            SELECT b.*, p.title as project_title 
-            FROM bids b 
-            JOIN projects p ON b.project_id = p.id 
-            WHERE b.freelancer_id = ? 
+        const [bids] = await db.execute(`
+            SELECT b.*, p.title as project_title, p.budget as project_budget
+            FROM bids b
+            JOIN projects p ON b.project_id = p.id
+            WHERE b.freelancer_id = ?
             ORDER BY b.created_at DESC
         `, [req.params.freelancerId]);
 
         res.json(bids);
     } catch (error) {
-        console.error('Get freelancer bids error:', error);
+        console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 });
 
-// Update bid status (accept/reject)
-router.put('/:id/status', async (req, res) => {
+// Update bid
+router.put('/:id', [
+    body('bid_amount').isFloat({ min: 0 }).withMessage('Bid amount must be a positive number')
+], async (req, res) => {
     try {
-        const { status } = req.body;
-
-        if (!['accepted', 'rejected'].includes(status)) {
-            return res.status(400).json({ message: 'Invalid status' });
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
         }
 
-        // Get bid details
-        const [bids] = await db.promise().query(
-            'SELECT * FROM bids WHERE id = ?',
-            [req.params.id]
+        const { bid_amount } = req.body;
+        const bidId = req.params.id;
+        const freelancerId = req.user.userId;
+
+        // Check if bid exists and belongs to freelancer
+        const [bids] = await db.execute(
+            'SELECT * FROM bids WHERE id = ? AND freelancer_id = ?',
+            [bidId, freelancerId]
         );
 
         if (bids.length === 0) {
-            return res.status(404).json({ message: 'Bid not found' });
+            return res.status(404).json({ message: 'Bid not found or unauthorized' });
         }
 
-        const bid = bids[0];
-
-        // Update bid status
-        await db.promise().query(
-            'UPDATE bids SET status = ? WHERE id = ?',
-            [status, req.params.id]
+        // Update bid
+        await db.execute(
+            'UPDATE bids SET bid_amount = ? WHERE id = ?',
+            [bid_amount, bidId]
         );
 
-        // If bid is accepted, update project status and assign freelancer
-        if (status === 'accepted') {
-            await db.promise().query(
-                'UPDATE projects SET status = "in_progress", freelancer_id = ? WHERE id = ?',
-                [bid.freelancer_id, bid.project_id]
-            );
-        }
-
-        res.json({ message: 'Bid status updated successfully' });
+        res.json({ message: 'Bid updated successfully' });
     } catch (error) {
-        console.error('Bid status update error:', error);
+        console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 });
@@ -140,10 +134,25 @@ router.put('/:id/status', async (req, res) => {
 // Delete bid
 router.delete('/:id', async (req, res) => {
     try {
-        await db.promise().query('DELETE FROM bids WHERE id = ?', [req.params.id]);
+        const bidId = req.params.id;
+        const freelancerId = req.user.userId;
+
+        // Check if bid exists and belongs to freelancer
+        const [bids] = await db.execute(
+            'SELECT * FROM bids WHERE id = ? AND freelancer_id = ?',
+            [bidId, freelancerId]
+        );
+
+        if (bids.length === 0) {
+            return res.status(404).json({ message: 'Bid not found or unauthorized' });
+        }
+
+        // Delete bid
+        await db.execute('DELETE FROM bids WHERE id = ?', [bidId]);
+
         res.json({ message: 'Bid deleted successfully' });
     } catch (error) {
-        console.error('Bid deletion error:', error);
+        console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 });

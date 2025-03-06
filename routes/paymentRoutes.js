@@ -1,52 +1,49 @@
 const express = require('express');
 const router = express.Router();
-const mysql = require('mysql2');
+const db = require('../config/db');
 const { body, validationResult } = require('express-validator');
 
-// Database connection
-const db = mysql.createConnection({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME
-});
-
-// Validation middleware
-const validatePayment = [
-    body('amount').isNumeric().withMessage('Amount must be a number'),
-    body('project_id').isNumeric().withMessage('Project ID is required'),
-    body('client_id').isNumeric().withMessage('Client ID is required'),
-    body('freelancer_id').isNumeric().withMessage('Freelancer ID is required')
-];
-
-// Create payment
-router.post('/', validatePayment, async (req, res) => {
+// Create a new payment
+router.post('/', [
+    body('project_id').isInt().withMessage('Valid project ID is required'),
+    body('amount').isFloat({ min: 0 }).withMessage('Amount must be a positive number')
+], async (req, res) => {
     try {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             return res.status(400).json({ errors: errors.array() });
         }
 
-        const { amount, project_id, client_id, freelancer_id, transaction_id } = req.body;
+        const { project_id, amount } = req.body;
+        const clientId = req.user.userId;
 
-        // Check if project exists and is in progress
-        const [projects] = await db.promise().query(
-            'SELECT * FROM projects WHERE id = ? AND status = "in_progress"',
-            [project_id]
+        // Check if user is a client
+        if (req.user.usertype !== 'client') {
+            return res.status(403).json({ message: 'Only clients can make payments' });
+        }
+
+        // Check if project exists and belongs to client
+        const [projects] = await db.execute(
+            'SELECT * FROM projects WHERE id = ? AND client_id = ?',
+            [project_id, clientId]
         );
 
         if (projects.length === 0) {
-            return res.status(400).json({ message: 'Project not found or not in progress' });
+            return res.status(404).json({ message: 'Project not found or unauthorized' });
         }
 
-        const [result] = await db.promise().query(
-            'INSERT INTO payments (amount, project_id, client_id, freelancer_id, transaction_id) VALUES (?, ?, ?, ?, ?)',
-            [amount, project_id, client_id, freelancer_id, transaction_id]
+        // Create payment
+        const [result] = await db.execute(
+            'INSERT INTO payments (amount, payment_date, status, project_id) VALUES (?, CURDATE(), "Pending", ?)',
+            [amount, project_id]
         );
 
-        res.status(201).json({ message: 'Payment created successfully', paymentId: result.insertId });
+        res.status(201).json({
+            message: 'Payment initiated successfully',
+            paymentId: result.insertId
+        });
     } catch (error) {
-        console.error('Payment creation error:', error);
+        console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 });
@@ -54,20 +51,14 @@ router.post('/', validatePayment, async (req, res) => {
 // Get payments for a project
 router.get('/project/:projectId', async (req, res) => {
     try {
-        const [payments] = await db.promise().query(`
-            SELECT p.*, 
-                   c.name as client_name, 
-                   f.name as freelancer_name 
-            FROM payments p 
-            JOIN users c ON p.client_id = c.id 
-            JOIN users f ON p.freelancer_id = f.id 
-            WHERE p.project_id = ? 
-            ORDER BY p.payment_date DESC
-        `, [req.params.projectId]);
+        const [payments] = await db.execute(
+            'SELECT * FROM payments WHERE project_id = ? ORDER BY payment_date DESC',
+            [req.params.projectId]
+        );
 
         res.json(payments);
     } catch (error) {
-        console.error('Get project payments error:', error);
+        console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 });
@@ -75,77 +66,75 @@ router.get('/project/:projectId', async (req, res) => {
 // Get payments by client
 router.get('/client/:clientId', async (req, res) => {
     try {
-        const [payments] = await db.promise().query(`
-            SELECT p.*, 
-                   pr.title as project_title, 
-                   f.name as freelancer_name 
-            FROM payments p 
-            JOIN projects pr ON p.project_id = pr.id 
-            JOIN users f ON p.freelancer_id = f.id 
-            WHERE p.client_id = ? 
+        const [payments] = await db.execute(`
+            SELECT p.*, pr.title as project_title
+            FROM payments p
+            JOIN projects pr ON p.project_id = pr.id
+            WHERE pr.client_id = ?
             ORDER BY p.payment_date DESC
         `, [req.params.clientId]);
 
         res.json(payments);
     } catch (error) {
-        console.error('Get client payments error:', error);
-        res.status(500).json({ message: 'Server error' });
-    }
-});
-
-// Get payments by freelancer
-router.get('/freelancer/:freelancerId', async (req, res) => {
-    try {
-        const [payments] = await db.promise().query(`
-            SELECT p.*, 
-                   pr.title as project_title, 
-                   c.name as client_name 
-            FROM payments p 
-            JOIN projects pr ON p.project_id = pr.id 
-            JOIN users c ON p.client_id = c.id 
-            WHERE p.freelancer_id = ? 
-            ORDER BY p.payment_date DESC
-        `, [req.params.freelancerId]);
-
-        res.json(payments);
-    } catch (error) {
-        console.error('Get freelancer payments error:', error);
+        console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 });
 
 // Update payment status
-router.put('/:id/status', async (req, res) => {
+router.put('/:id/status', [
+    body('status').isIn(['Pending', 'Completed', 'Failed']).withMessage('Invalid status')
+], async (req, res) => {
     try {
-        const { status } = req.body;
-
-        if (!['pending', 'completed', 'failed'].includes(status)) {
-            return res.status(400).json({ message: 'Invalid status' });
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
         }
 
-        await db.promise().query(
-            'UPDATE payments SET status = ? WHERE id = ?',
-            [status, req.params.id]
+        const { status } = req.body;
+        const paymentId = req.params.id;
+
+        // Check if payment exists
+        const [payments] = await db.execute(
+            'SELECT * FROM payments WHERE id = ?',
+            [paymentId]
         );
 
-        // If payment is completed, update project status
-        if (status === 'completed') {
-            const [payments] = await db.promise().query(
-                'SELECT project_id FROM payments WHERE id = ?',
-                [req.params.id]
-            );
-
-            if (payments.length > 0) {
-                await db.promise().query(
-                    'UPDATE projects SET status = "completed" WHERE id = ?',
-                    [payments[0].project_id]
-                );
-            }
+        if (payments.length === 0) {
+            return res.status(404).json({ message: 'Payment not found' });
         }
+
+        // Update payment status
+        await db.execute(
+            'UPDATE payments SET status = ? WHERE id = ?',
+            [status, paymentId]
+        );
 
         res.json({ message: 'Payment status updated successfully' });
     } catch (error) {
-        console.error('Payment status update error:', error);
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Get payment statistics
+router.get('/stats/:clientId', async (req, res) => {
+    try {
+        const [stats] = await db.execute(`
+            SELECT 
+                COUNT(*) as total_payments,
+                SUM(CASE WHEN status = 'Completed' THEN 1 ELSE 0 END) as completed_payments,
+                SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END) as pending_payments,
+                SUM(CASE WHEN status = 'Failed' THEN 1 ELSE 0 END) as failed_payments,
+                SUM(CASE WHEN status = 'Completed' THEN amount ELSE 0 END) as total_amount
+            FROM payments p
+            JOIN projects pr ON p.project_id = pr.id
+            WHERE pr.client_id = ?
+        `, [req.params.clientId]);
+
+        res.json(stats[0]);
+    } catch (error) {
+        console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 });

@@ -8,106 +8,147 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        .about-container {
-            padding: 100px 5% 50px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .about-header {
+        .about-hero {
+            background: linear-gradient(rgba(44, 62, 80, 0.9), rgba(44, 62, 80, 0.9)),
+                        url('https://images.unsplash.com/photo-1522071820081-009f0129c71c?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80');
+            background-size: cover;
+            background-position: center;
+            height: 40vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             text-align: center;
-            margin-bottom: 50px;
+            color: white;
+            margin-top: 60px;
         }
 
-        .about-header h1 {
-            color: #2c3e50;
-            font-size: 2.5em;
-            margin-bottom: 20px;
+        .about-hero h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .about-hero p {
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto;
         }
 
         .about-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 50px;
-            margin-bottom: 50px;
-        }
-
-        .about-text {
-            padding: 20px;
-        }
-
-        .about-text p {
-            margin-bottom: 20px;
-            line-height: 1.8;
-        }
-
-        .about-image {
-            width: 100%;
-            height: 400px;
-            object-fit: cover;
-            border-radius: 10px;
-        }
-
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 30px;
-            margin-top: 50px;
-        }
-
-        .feature-card {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-
-        .feature-icon {
-            font-size: 2.5em;
-            color: #3498db;
-            margin-bottom: 20px;
-        }
-
-        .feature-card h3 {
-            color: #2c3e50;
-            margin-bottom: 15px;
-        }
-
-        .feature-card p {
-            color: #7f8c8d;
-            line-height: 1.6;
-        }
-
-        .stats-section {
-            background: #f8f9fa;
-            padding: 50px 0;
-            margin-top: 50px;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 30px;
+            padding: 5rem 5%;
             max-width: 1200px;
             margin: 0 auto;
-            padding: 0 5%;
         }
 
-        .stat-card {
+        .about-section {
+            margin-bottom: 4rem;
+        }
+
+        .about-section h2 {
+            color: #2c3e50;
+            margin-bottom: 1.5rem;
+            font-size: 2rem;
+        }
+
+        .about-section p {
+            color: #666;
+            line-height: 1.8;
+            margin-bottom: 1.5rem;
+        }
+
+        .mission-vision {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .mission-card, .vision-card {
+            background: #f8f9fa;
+            padding: 2rem;
+            border-radius: 10px;
             text-align: center;
         }
 
-        .stat-number {
-            font-size: 2.5em;
+        .mission-card i, .vision-card i {
+            font-size: 2.5rem;
             color: #3498db;
-            font-weight: 600;
-            margin-bottom: 10px;
+            margin-bottom: 1rem;
         }
 
-        .stat-label {
-            color: #7f8c8d;
-            font-size: 1.1em;
+        .team-section {
+            background: #f8f9fa;
+            padding: 5rem 5%;
+        }
+
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .team-member {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .team-member:hover {
+            transform: translateY(-5px);
+        }
+
+        .team-member img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+        }
+
+        .team-member-info {
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .team-member-info h3 {
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+
+        .team-member-info p {
+            color: #666;
+            margin-bottom: 1rem;
+        }
+
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .social-links a {
+            color: #3498db;
+            font-size: 1.2rem;
+            transition: color 0.3s ease;
+        }
+
+        .social-links a:hover {
+            color: #2980b9;
+        }
+
+        @media (max-width: 768px) {
+            .about-hero h1 {
+                font-size: 2rem;
+            }
+            
+            .about-hero p {
+                font-size: 1rem;
+            }
+            
+            .mission-vision {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -122,83 +163,133 @@
             <a href="freelancers.html">Freelancers</a>
             <a href="about.html" class="active">About</a>
             <a href="contact.html">Contact</a>
-            <button class="login-btn">Login</button>
-            <button class="signup-btn">Sign Up</button>
+            <div class="user-menu">
+                <button class="user-btn" id="userMenuBtn">
+                    <i class="fas fa-user"></i>
+                    <span id="username">Account</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="user-dropdown" id="userDropdown">
+                    <a href="settings.html">
+                        <i class="fas fa-cog"></i> Settings
+                    </a>
+                    <a href="#" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </div>
+            </div>
         </div>
     </nav>
 
-    <div class="about-container">
-        <div class="about-header">
+    <header class="about-hero">
+        <div class="hero-content">
             <h1>About FreelanceHub</h1>
-            <p>Connecting talented freelancers with clients worldwide</p>
+            <p>Connecting talent with opportunity, one project at a time</p>
         </div>
+    </header>
 
-        <div class="about-content">
-            <div class="about-text">
-                <p>FreelanceHub is a leading platform that connects skilled freelancers with clients looking for professional services. Our mission is to create a seamless environment where talent meets opportunity.</p>
-                <p>With thousands of successful projects completed and a growing community of professionals, we're revolutionizing the way people work together in the digital age.</p>
-                <p>Our platform offers:</p>
-                <ul>
-                    <li>Secure payment system</li>
-                    <li>Project management tools</li>
-                    <li>Skill verification</li>
-                    <li>24/7 support</li>
-                </ul>
-            </div>
-            <img src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80" alt="FreelanceHub Team" class="about-image">
-        </div>
+    <main class="about-content">
+        <section class="about-section">
+            <h2>Our Story</h2>
+            <p>Founded in 2020, FreelanceHub emerged from a vision to revolutionize the way freelancers and clients connect. We recognized the growing need for a platform that not only facilitates these connections but also ensures quality, security, and satisfaction for all parties involved.</p>
+            <p>Today, we're proud to be one of the leading freelancing platforms, serving thousands of clients and freelancers across the globe. Our commitment to excellence and innovation continues to drive us forward.</p>
+        </section>
 
-        <div class="features-grid">
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <i class="fas fa-shield-alt"></i>
+        <section class="about-section">
+            <h2>Our Mission & Vision</h2>
+            <div class="mission-vision">
+                <div class="mission-card">
+                    <i class="fas fa-bullseye"></i>
+                    <h3>Our Mission</h3>
+                    <p>To empower freelancers and businesses by providing a secure, efficient, and transparent platform that enables seamless collaboration and project success.</p>
                 </div>
-                <h3>Secure Platform</h3>
-                <p>Your data and transactions are protected with industry-standard security measures.</p>
+                <div class="vision-card">
+                    <i class="fas fa-eye"></i>
+                    <h3>Our Vision</h3>
+                    <p>To become the world's most trusted platform for freelancing, setting industry standards for quality, security, and user satisfaction.</p>
+                </div>
             </div>
-            <div class="feature-card">
-                <div class="feature-icon">
+        </section>
+
+        <section class="about-section">
+            <h2>Our Values</h2>
+            <div class="features-grid">
+                <div class="feature-card">
                     <i class="fas fa-handshake"></i>
+                    <h3>Trust</h3>
+                    <p>Building trust through transparency, security, and reliable service delivery.</p>
                 </div>
-                <h3>Trusted Community</h3>
-                <p>Join a community of verified professionals and reliable clients.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <i class="fas fa-clock"></i>
+                <div class="feature-card">
+                    <i class="fas fa-star"></i>
+                    <h3>Quality</h3>
+                    <p>Maintaining high standards in every aspect of our service.</p>
                 </div>
-                <h3>24/7 Support</h3>
-                <p>Our support team is always ready to help you with any questions or concerns.</p>
+                <div class="feature-card">
+                    <i class="fas fa-users"></i>
+                    <h3>Community</h3>
+                    <p>Fostering a supportive environment for growth and collaboration.</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-lightbulb"></i>
+                    <h3>Innovation</h3>
+                    <p>Continuously improving and adapting to meet evolving needs.</p>
+                </div>
             </div>
-        </div>
-    </div>
+        </section>
+    </main>
 
-    <div class="stats-section">
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-number">10K+</div>
-                <div class="stat-label">Active Freelancers</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">5K+</div>
-                <div class="stat-label">Completed Projects</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">98%</div>
-                <div class="stat-label">Client Satisfaction</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">50+</div>
-                <div class="stat-label">Countries</div>
+    <section class="team-section">
+        <div class="about-content">
+            <h2>Our Leadership Team</h2>
+            <div class="team-grid">
+                <div class="team-member">
+                    <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80" alt="CEO">
+                    <div class="team-member-info">
+                        <h3>John Smith</h3>
+                        <p>CEO & Founder</p>
+                        <div class="social-links">
+                            <a href="#"><i class="fab fa-linkedin"></i></a>
+                            <a href="#"><i class="fab fa-twitter"></i></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="team-member">
+                    <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80" alt="CTO">
+                    <div class="team-member-info">
+                        <h3>Sarah Johnson</h3>
+                        <p>Chief Technology Officer</p>
+                        <div class="social-links">
+                            <a href="#"><i class="fab fa-linkedin"></i></a>
+                            <a href="#"><i class="fab fa-twitter"></i></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="team-member">
+                    <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80" alt="COO">
+                    <div class="team-member-info">
+                        <h3>Michael Chen</h3>
+                        <p>Chief Operations Officer</p>
+                        <div class="social-links">
+                            <a href="#"><i class="fab fa-linkedin"></i></a>
+                            <a href="#"><i class="fab fa-twitter"></i></a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
+    </section>
 
     <footer>
         <div class="footer-content">
             <div class="footer-section">
                 <h3>About Us</h3>
-                <p>FreelanceHub connects talented freelancers with clients worldwide.</p>
+                <p>FreelanceHub is a leading global marketplace connecting talented freelancers with clients worldwide. We provide a secure and efficient platform for businesses to find skilled professionals and for freelancers to showcase their expertise.</p>
+                <div class="social-links">
+                    <a href="#"><i class="fab fa-facebook"></i></a>
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-linkedin"></i></a>
+                    <a href="#"><i class="fab fa-instagram"></i></a>
+                </div>
             </div>
             <div class="footer-section">
                 <h3>Quick Links</h3>
@@ -207,12 +298,23 @@
                     <li><a href="#">Pricing</a></li>
                     <li><a href="#">Terms of Service</a></li>
                     <li><a href="#">Privacy Policy</a></li>
+                    <li><a href="#">FAQ</a></li>
+                    <li><a href="#">Blog</a></li>
                 </ul>
             </div>
             <div class="footer-section">
                 <h3>Contact Us</h3>
-                <p>Email: support@freelancehub.com</p>
-                <p>Phone: +1 (555) 123-4567</p>
+                <p><i class="fas fa-envelope"></i> support@freelancehub.com</p>
+                <p><i class="fas fa-phone"></i> +1 (555) 123-4567</p>
+                <p><i class="fas fa-map-marker-alt"></i> 123 Business Street, Suite 100<br>New York, NY 10001</p>
+            </div>
+            <div class="footer-section">
+                <h3>Newsletter</h3>
+                <p>Subscribe to our newsletter for updates and exclusive offers.</p>
+                <form class="newsletter-form">
+                    <input type="email" placeholder="Enter your email">
+                    <button type="submit">Subscribe</button>
+                </form>
             </div>
         </div>
         <div class="footer-bottom">

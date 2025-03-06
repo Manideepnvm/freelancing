@@ -4,6 +4,7 @@ const cors = require('cors');
 const mysql = require('mysql2');
 const path = require('path');
 const { body, validationResult } = require('express-validator'); // Correct express-validator usage
+const jwt = require('jsonwebtoken');
 
 // Import routes
 const userRoutes = require('./routes/userRoutes');
@@ -19,6 +20,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static('pages'));
 
 // Database connection
 const db = mysql.createConnection({
@@ -36,12 +38,30 @@ db.connect((err) => {
     console.log('Connected to MySQL database');
 });
 
+// Authentication middleware
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+        return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+        if (err) {
+            return res.status(403).json({ message: 'Invalid token' });
+        }
+        req.user = user;
+        next();
+    });
+};
+
 // Routes
 app.use('/api/users', userRoutes);
-app.use('/api/projects', projectRoutes);
-app.use('/api/bids', bidRoutes);
-app.use('/api/payments', paymentRoutes);
-app.use('/api/reviews', reviewRoutes);
+app.use('/api/projects', authenticateToken, projectRoutes);
+app.use('/api/bids', authenticateToken, bidRoutes);
+app.use('/api/payments', authenticateToken, paymentRoutes);
+app.use('/api/reviews', authenticateToken, reviewRoutes);
 
 // Basic validation example
 app.post('/api/test-validation', [
@@ -57,7 +77,7 @@ app.post('/api/test-validation', [
 
 // Serve index.html
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Error handling middleware
